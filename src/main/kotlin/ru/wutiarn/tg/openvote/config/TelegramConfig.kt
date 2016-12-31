@@ -13,6 +13,7 @@ open class TelegramConfig(@Value("\${openvote.token}") val telegramToken: String
     @Bean
     open fun bot(): TelegramBot {
         val client = OkHttpClient().newBuilder().readTimeout(70, TimeUnit.SECONDS).build()
-        return TelegramBotAdapter.buildCustom(telegramToken, client)
+        val bot = TelegramBotAdapter.buildCustom(telegramToken, client)
+        return bot
     }
 }
