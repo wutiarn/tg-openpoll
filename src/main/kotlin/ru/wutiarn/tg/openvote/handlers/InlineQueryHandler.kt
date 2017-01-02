@@ -4,15 +4,13 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.InlineQuery
 import com.pengrad.telegrambot.model.request.InlineQueryResultArticle
 import com.pengrad.telegrambot.request.AnswerInlineQuery
-import org.redisson.api.RedissonClient
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import ru.wutiarn.tg.openvote.makeInlineKeyboard
 
 @Component
-open class InlineQueryHandler(val bot: TelegramBot,
-                              val redisson: RedissonClient) {
+open class InlineQueryHandler(val bot: TelegramBot) {
 
     val logger: Logger = LoggerFactory.getLogger(InlineQueryHandler::class.java)
 
