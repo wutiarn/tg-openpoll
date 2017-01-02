@@ -6,10 +6,13 @@ import com.pengrad.telegrambot.request.AnswerCallbackQuery
 import com.vdurmont.emoji.EmojiParser
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
+import java.util.concurrent.TimeUnit
 
 @Component
-open class CallbackQueryHandler(val bot: TelegramBot) {
+open class CallbackQueryHandler(val bot: TelegramBot,
+                                val redis: RedisTemplate<String, String>) {
 
     val logger: Logger = LoggerFactory.getLogger(InlineQueryHandler::class.java)
 
@@ -17,28 +20,43 @@ open class CallbackQueryHandler(val bot: TelegramBot) {
         val userId = callback.from().id()
         logger.info("Received callback: ${callback.data()} from $userId")
 
+
         val dataParts = callback.data().split(":")
 
-        var callbackDataValid = true
         var answerCallbackQuery = AnswerCallbackQuery(callback.id())
 
         val method = dataParts[0]
         if (method != "v") {
-            answerCallbackQuery = answerCallbackQuery.text("Unsupported data type: $method")
-            bot.execute(answerCallbackQuery)
+            bot.execute(answerCallbackQuery.text("Unsupported data type: $method"))
             return
         }
         val id = dataParts[1]
-        val action = dataParts[2]
+        val voteResult = dataParts[2]
 
-        answerCallbackQuery = when (action) {
+        answerCallbackQuery = when (voteResult) {
             "u" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :thumbsup: this."))
             "n" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :neutral_face: this."))
             "d" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :thumbsdown: this."))
-            "r" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("Results is sent to you in PM"))
-            else -> answerCallbackQuery.text("Unsupported action")
+            "r" -> {
+                sendResults()
+                bot.execute(answerCallbackQuery.text(EmojiParser.parseToUnicode("Results were sent to you in PM")))
+                return
+            }
+            else -> {
+                bot.execute(answerCallbackQuery.text("Unsupported vote result"))
+                return
+            }
         }
-        val response = bot.execute(answerCallbackQuery)
+
+        val votes = redis.boundHashOps<String, String>(id)
+        votes.expire(10, TimeUnit.SECONDS)
+        votes.put(userId.toString(), voteResult)
+
+        bot.execute(answerCallbackQuery)
+    }
+
+    private fun sendResults() {
+
     }
 
 }
