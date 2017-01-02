@@ -7,16 +7,16 @@ import com.pengrad.telegrambot.request.EditMessageReplyMarkup
 import com.pengrad.telegrambot.request.GetChat
 import com.pengrad.telegrambot.request.SendMessage
 import com.vdurmont.emoji.EmojiParser
+import org.redisson.api.RedissonClient
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
 import ru.wutiarn.tg.openvote.makeInlineKeyboard
 import java.util.concurrent.TimeUnit
 
 @Component
 open class CallbackQueryHandler(val bot: TelegramBot,
-                                val redis: RedisTemplate<String, String>) {
+                                val redisson: RedissonClient) {
 
     val logger: Logger = LoggerFactory.getLogger(InlineQueryHandler::class.java)
 
@@ -36,14 +36,14 @@ open class CallbackQueryHandler(val bot: TelegramBot,
         val id = dataParts[1]
         val voteResult = dataParts[2]
 
-        val votes = redis.boundHashOps<String, String>(id)
+        val votes = redisson.getMap<String, String>(id)
 
         answerCallbackQuery = when (voteResult) {
             "u" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :thumbsup: this."))
             "n" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :neutral_face: this."))
             "d" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :thumbsdown: this."))
             "r" -> {
-                sendResults(callback, votes.entries())
+                sendResults(callback, votes)
                 bot.execute(answerCallbackQuery.text(EmojiParser.parseToUnicode("Results were sent to you in PM." +
                         "Remember that you should press Start button in chat with bot.")))
                 return
@@ -57,7 +57,7 @@ open class CallbackQueryHandler(val bot: TelegramBot,
         votes.put(userId.toString(), voteResult)
         votes.expire(10, TimeUnit.DAYS)
 
-        val voteValues = votes.values()
+        val voteValues = votes.values
         val uCount = voteValues.count { it == "u" }
         val nCount = voteValues.count { it == "n" }
         val dCount = voteValues.count { it == "d" }
