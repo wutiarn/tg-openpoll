@@ -4,13 +4,14 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.CallbackQuery
 import com.pengrad.telegrambot.request.AnswerCallbackQuery
 import com.pengrad.telegrambot.request.EditMessageReplyMarkup
+import com.pengrad.telegrambot.request.GetChat
+import com.pengrad.telegrambot.request.SendMessage
 import com.vdurmont.emoji.EmojiParser
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
 import ru.wutiarn.tg.openvote.makeInlineKeyboard
-import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -35,12 +36,14 @@ open class CallbackQueryHandler(val bot: TelegramBot,
         val id = dataParts[1]
         val voteResult = dataParts[2]
 
+        val votes = redis.boundHashOps<String, String>(id)
+
         answerCallbackQuery = when (voteResult) {
             "u" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :thumbsup: this."))
             "n" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :neutral_face: this."))
             "d" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :thumbsdown: this."))
             "r" -> {
-                sendResults()
+                sendResults(callback, votes.entries())
                 bot.execute(answerCallbackQuery.text(EmojiParser.parseToUnicode("Results were sent to you in PM")))
                 return
             }
@@ -50,7 +53,6 @@ open class CallbackQueryHandler(val bot: TelegramBot,
             }
         }
 
-        val votes = redis.boundHashOps<String, String>(id)
         votes.put(userId.toString(), voteResult)
         votes.expire(10, TimeUnit.DAYS)
 
@@ -69,8 +71,30 @@ open class CallbackQueryHandler(val bot: TelegramBot,
                 ))))
     }
 
-    private fun sendResults() {
+    private fun sendResults(callback: CallbackQuery, votes: Map<String, String>) {
+        val resultStringBuilder = StringBuilder("================\n")
+        resultStringBuilder.appendln("Up:")
+                .appendln(votes.formatVoters("u"))
+                .appendln("Neutral:")
+                .appendln(votes.formatVoters("n"))
+                .appendln("Down:")
+                .appendln(votes.formatVoters("d"))
 
+        bot.execute(SendMessage(callback.from().id(), resultStringBuilder.toString()))
+    }
+
+    fun Map<String, String>.formatVoters(type: String): String {
+        return this.filter { it.value == type }
+                .map { vote ->
+                    val chatResponse = bot.execute(GetChat(vote.key))
+                    if (!chatResponse.isOk) {
+                        return@map "<unknown> (${vote.key})"
+                    }
+                    val chat = chatResponse.chat()
+                    val username = chat.username()
+                    return@map "${chat.firstName()} ${chat.lastName()} ${if (username != null) "@" + username else ""}"
+                }
+                .joinToString("\n", postfix = "\n")
     }
 
 }
