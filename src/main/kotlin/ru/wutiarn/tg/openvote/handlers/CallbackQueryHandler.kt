@@ -44,7 +44,8 @@ open class CallbackQueryHandler(val bot: TelegramBot,
             "d" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :thumbsdown: this."))
             "r" -> {
                 sendResults(callback, votes.entries())
-                bot.execute(answerCallbackQuery.text(EmojiParser.parseToUnicode("Results were sent to you in PM")))
+                bot.execute(answerCallbackQuery.text(EmojiParser.parseToUnicode("Results were sent to you in PM." +
+                        "Remember that you should press Start button in chat with bot.")))
                 return
             }
             else -> {
