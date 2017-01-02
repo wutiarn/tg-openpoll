@@ -3,11 +3,14 @@ package ru.wutiarn.tg.openvote.handlers
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.CallbackQuery
 import com.pengrad.telegrambot.request.AnswerCallbackQuery
+import com.pengrad.telegrambot.request.EditMessageReplyMarkup
 import com.vdurmont.emoji.EmojiParser
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
+import ru.wutiarn.tg.openvote.makeInlineKeyboard
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -19,11 +22,10 @@ open class CallbackQueryHandler(val bot: TelegramBot,
     fun handleInlineCallback(callback: CallbackQuery) {
         val userId = callback.from().id()
         logger.info("Received callback: ${callback.data()} from $userId")
-
+        var answerCallbackQuery = AnswerCallbackQuery(callback.id())
 
         val dataParts = callback.data().split(":")
 
-        var answerCallbackQuery = AnswerCallbackQuery(callback.id())
 
         val method = dataParts[0]
         if (method != "v") {
@@ -49,10 +51,22 @@ open class CallbackQueryHandler(val bot: TelegramBot,
         }
 
         val votes = redis.boundHashOps<String, String>(id)
-        votes.expire(10, TimeUnit.SECONDS)
         votes.put(userId.toString(), voteResult)
+        votes.expire(10, TimeUnit.DAYS)
+
+        val voteValues = votes.values()
+        val uCount = voteValues.count { it == "u" }
+        val nCount = voteValues.count { it == "n" }
+        val dCount = voteValues.count { it == "d" }
 
         bot.execute(answerCallbackQuery)
+
+        bot.execute(EditMessageReplyMarkup(callback.inlineMessageId(), null)
+                .replyMarkup(makeInlineKeyboard(id, mapOf(
+                        "u" to ":thumbsup: ($uCount)",
+                        "n" to ":neutral_face: ($nCount)",
+                        "d" to ":thumbsdown: ($dCount)"
+                ))))
     }
 
     private fun sendResults() {
