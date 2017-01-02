@@ -2,10 +2,10 @@ package ru.wutiarn.tg.openvote.handlers
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.CallbackQuery
+import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.AnswerCallbackQuery
-import com.pengrad.telegrambot.request.EditMessageReplyMarkup
+import com.pengrad.telegrambot.request.EditMessageText
 import com.pengrad.telegrambot.request.GetChat
-import com.pengrad.telegrambot.request.SendMessage
 import com.vdurmont.emoji.EmojiParser
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -27,7 +27,6 @@ open class CallbackQueryHandler(val bot: TelegramBot,
 
         val dataParts = callback.data().split(":")
 
-
         val method = dataParts[0]
         if (method != "v") {
             bot.execute(answerCallbackQuery.text("Unsupported data type: $method"))
@@ -36,18 +35,18 @@ open class CallbackQueryHandler(val bot: TelegramBot,
         val id = dataParts[1]
         val voteResult = dataParts[2]
 
-        val votes = redis.boundHashOps<String, String>(id)
+        if (!redis.hasKey("openvote_$id")) {
+            bot.execute(answerCallbackQuery.text("This vote is finished"))
+            return
+        }
+
+        val poll = redis.boundHashOps<String, String>("openvote_${id}")
+        val votes = redis.boundHashOps<String, String>("openvote_${id}_votes")
 
         answerCallbackQuery = when (voteResult) {
             "u" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :thumbsup: this."))
             "n" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :neutral_face: this."))
             "d" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :thumbsdown: this."))
-            "r" -> {
-                sendResults(callback, votes.entries())
-                bot.execute(answerCallbackQuery.text(EmojiParser.parseToUnicode("Results were sent to you in PM." +
-                        "Remember that you should press Start button in chat with bot.")))
-                return
-            }
             else -> {
                 bot.execute(answerCallbackQuery.text("Unsupported vote result"))
                 return
@@ -64,28 +63,19 @@ open class CallbackQueryHandler(val bot: TelegramBot,
 
         bot.execute(answerCallbackQuery)
 
-        bot.execute(EditMessageReplyMarkup(callback.inlineMessageId(), null)
+        bot.execute(EditMessageText(callback.inlineMessageId(),
+                "*${poll["topic"]}*\n\nCurrent results:\n${getResults(votes.entries())}")
                 .replyMarkup(makeInlineKeyboard(id, mapOf(
                         "u" to ":thumbsup: ($uCount)",
                         "n" to ":neutral_face: ($nCount)",
                         "d" to ":thumbsdown: ($dCount)"
-                ))))
+                )))
+                .parseMode(ParseMode.Markdown)
+        )
     }
 
-    private fun sendResults(callback: CallbackQuery, votes: Map<String, String>) {
-        val resultStringBuilder = StringBuilder("================\n")
-        resultStringBuilder.appendln("Up:")
-                .appendln(votes.formatVoters("u"))
-                .appendln("Neutral:")
-                .appendln(votes.formatVoters("n"))
-                .appendln("Down:")
-                .appendln(votes.formatVoters("d"))
-
-        bot.execute(SendMessage(callback.from().id(), resultStringBuilder.toString()))
-    }
-
-    fun Map<String, String>.formatVoters(type: String): String {
-        return this.filter { it.value == type }
+    private fun getResults(votes: Map<String, String>): String {
+        return votes.entries.sortedBy { it.value }
                 .map { vote ->
                     val chatResponse = bot.execute(GetChat(vote.key))
                     if (!chatResponse.isOk) {
@@ -93,9 +83,8 @@ open class CallbackQueryHandler(val bot: TelegramBot,
                     }
                     val chat = chatResponse.chat()
                     val username = chat.username()
-                    return@map "${chat.firstName()} ${chat.lastName()} ${if (username != null) "@" + username else ""}"
+                    return@map "[[${vote.value}]] ${chat.firstName()} ${chat.lastName()} ${if (username != null) "@" + username else ""}"
                 }
-                .joinToString("\n", postfix = "\n")
+                .joinToString("\n")
     }
-
 }

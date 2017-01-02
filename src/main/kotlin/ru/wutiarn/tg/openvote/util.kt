@@ -12,8 +12,5 @@ fun makeInlineKeyboard(pollId: String, variants: Map<String, String>): InlineKey
             }
             .toTypedArray()
 
-    return InlineKeyboardMarkup(variantsRow, arrayOf(
-            InlineKeyboardButton("Results")
-                    .callbackData("v:$pollId:r"))
-    )
+    return InlineKeyboardMarkup(variantsRow)
 }
