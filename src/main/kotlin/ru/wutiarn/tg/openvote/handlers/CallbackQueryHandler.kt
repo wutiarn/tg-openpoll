@@ -23,7 +23,7 @@ open class CallbackQueryHandler(val bot: TelegramBot,
     fun handleInlineCallback(callback: CallbackQuery) {
         val userId = callback.from().id()
         logger.info("Received callback: ${callback.data()} from $userId")
-        var answerCallbackQuery = AnswerCallbackQuery(callback.id())
+        val answerCallbackQuery = AnswerCallbackQuery(callback.id())
 
         val dataParts = callback.data().split(":")
 
@@ -33,48 +33,50 @@ open class CallbackQueryHandler(val bot: TelegramBot,
             return
         }
         val id = dataParts[1]
-        val voteResult = dataParts[2]
 
         if (!redis.hasKey("openvote_$id")) {
             bot.execute(answerCallbackQuery.text("This vote is finished"))
             return
         }
 
-        val poll = redis.boundHashOps<String, String>("openvote_${id}")
-        val votes = redis.boundHashOps<String, String>("openvote_${id}_votes")
-
-        answerCallbackQuery = when (voteResult) {
-            "u" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :thumbsup: this."))
-            "n" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :neutral_face: this."))
-            "d" -> answerCallbackQuery.text(EmojiParser.parseToUnicode("You :thumbsdown: this."))
-            else -> {
-                bot.execute(answerCallbackQuery.text("Unsupported vote result"))
-                return
-            }
+        val selectedVariantIndex = try {
+            dataParts[2].toInt()
+        } catch (e: Exception) {
+            bot.execute(answerCallbackQuery.text("Failed to parse selected option"))
+            return
         }
 
-        votes.put(userId.toString(), voteResult)
+        val poll = redis.boundHashOps<String, String>("openvote_${id}")
+        val votes = redis.boundHashOps<String, String>("openvote_${id}_votes")
+        val variants = redis.boundListOps("openvote_${id}_variants").let { it.range(0, it.size() - 1) }
+
+        if (selectedVariantIndex !in 0..variants.lastIndex) {
+            bot.execute(answerCallbackQuery.text("Unsupported vote result"))
+            return
+        }
+        val selectedVariant = variants[selectedVariantIndex]
+
+        bot.execute(answerCallbackQuery.text(EmojiParser.parseToUnicode("You $selectedVariant this.")))
+
+        votes.put(userId.toString(), selectedVariantIndex.toString())
         votes.expire(10, TimeUnit.DAYS)
 
         val voteValues = votes.values()
-        val uCount = voteValues.count { it == "u" }
-        val nCount = voteValues.count { it == "n" }
-        val dCount = voteValues.count { it == "d" }
 
-        bot.execute(answerCallbackQuery)
+
+        val variantButtons = variants
+                .mapIndexed { i, s -> "$s (${voteValues.count {it == i.toString()}})" }
+                .toTypedArray()
 
         bot.execute(EditMessageText(callback.inlineMessageId(),
-                "*${poll["topic"]}*\n\nCurrent results:\n${getResults(votes.entries())}")
-                .replyMarkup(makeInlineKeyboard(id, mapOf(
-                        "u" to ":thumbsup: ($uCount)",
-                        "n" to ":neutral_face: ($nCount)",
-                        "d" to ":thumbsdown: ($dCount)"
-                )))
+                "*${poll["topic"]}*\n\n${getResults(votes.entries(), variants)}")
+                .replyMarkup(makeInlineKeyboard(id, variantButtons))
                 .parseMode(ParseMode.Markdown)
+                .disableWebPagePreview(true)
         )
     }
 
-    private fun getResults(votes: Map<String, String>): String {
+    private fun getResults(votes: Map<String, String>, variants: List<String>): String {
         return votes.entries.sortedBy { it.value }
                 .map { vote ->
                     val chatResponse = bot.execute(GetChat(vote.key))
@@ -83,7 +85,13 @@ open class CallbackQueryHandler(val bot: TelegramBot,
                     }
                     val chat = chatResponse.chat()
                     val username = chat.username()
-                    return@map "[[${vote.value}]] ${chat.firstName()} ${chat.lastName()} ${if (username != null) "@" + username else ""}"
+                    val selectedVariant = EmojiParser.parseToUnicode(variants[vote.value.toInt()])
+                    val userDisplayName = "${chat.firstName()} ${chat.lastName()}"
+
+                    return@map when (username != null) {
+                        true -> "$selectedVariant [$userDisplayName](https://telegram.me/$username)"
+                        false -> "$selectedVariant $userDisplayName"
+                    }
                 }
                 .joinToString("\n")
     }

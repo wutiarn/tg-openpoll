@@ -21,13 +21,14 @@ open class InlineQueryHandler(val bot: TelegramBot,
     fun handleQuery(query: InlineQuery) {
         val queryText = query.query()
         val pollId = UUID.randomUUID().toString()
+        val variants = arrayOf(
+                ":thumbsup:",
+                ":neutral_face:",
+                ":thumbsdown:"
+        )
         val result = InlineQueryResultArticle(pollId, "Start new vote", queryText)
                 .description(queryText)
-                .replyMarkup(makeInlineKeyboard(pollId, mapOf(
-                        "u" to ":thumbsup:",
-                        "n" to ":neutral_face:",
-                        "d" to ":thumbsdown:"
-                )))
+                .replyMarkup(makeInlineKeyboard(pollId, variants))
         val resp = AnswerInlineQuery(query.id(), result)
                 .cacheTime(0)
                 .isPersonal(true)
@@ -35,6 +36,10 @@ open class InlineQueryHandler(val bot: TelegramBot,
         val pollRedis = redisTemplate.boundHashOps<String, String>("openvote_$pollId")
         pollRedis.expire(10, TimeUnit.DAYS)
         pollRedis.put("topic", queryText)
+
+        val pollVariants = redisTemplate.boundListOps("openvote_${pollId}_variants")
+        pollVariants.rightPushAll(*variants)
+        pollVariants.expire(10, TimeUnit.DAYS)
 
         logger.info("Inline query from ${query.from().id()}: $queryText")
         bot.execute(resp)

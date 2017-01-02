@@ -4,11 +4,11 @@ import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup
 import com.vdurmont.emoji.EmojiParser
 
-fun makeInlineKeyboard(pollId: String, variants: Map<String, String>): InlineKeyboardMarkup {
+fun makeInlineKeyboard(pollId: String, variants: Array<String>): InlineKeyboardMarkup {
     val variantsRow = variants
-            .map {
-                InlineKeyboardButton(EmojiParser.parseToUnicode(it.value))
-                        .callbackData("v:$pollId:${it.key}")
+            .mapIndexed { i, s ->
+                InlineKeyboardButton(EmojiParser.parseToUnicode(s))
+                        .callbackData("v:$pollId:$i")
             }
             .toTypedArray()
 
