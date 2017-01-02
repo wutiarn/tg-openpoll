@@ -18,24 +18,25 @@ open class InlineQueryHandler(val bot: TelegramBot) {
 
 
     fun handleQuery(query: InlineQuery) {
-        val qtext = query.query()
-        val result = InlineQueryResultArticle("id", "Start new vote", qtext)
-                .description(qtext)
+        val queryText = query.query()
+        val pollId = query.id()
+        val result = InlineQueryResultArticle("id", "Start new vote", queryText)
+                .description(queryText)
                 .replyMarkup(InlineKeyboardMarkup(arrayOf(
                         InlineKeyboardButton(EmojiParser.parseToUnicode(":thumbsup:"))
-                                .callbackData("vote1234:up"),
+                                .callbackData("v:$pollId:u"),
                         InlineKeyboardButton(EmojiParser.parseToUnicode(":neutral_face:"))
-                                .callbackData("vote1234:neutral"),
+                                .callbackData("v:$pollId:n"),
                         InlineKeyboardButton(EmojiParser.parseToUnicode(":thumbsdown:"))
-                                .callbackData("vote1234:down")
+                                .callbackData("v:$pollId:d")
                 ), arrayOf(
-                        InlineKeyboardButton(EmojiParser.parseToUnicode(":clipboard:"))
-                                .callbackData("vote1234:results"))
+                        InlineKeyboardButton("Results")
+                                .callbackData("v:$pollId:r"))
                 ))
         val resp = AnswerInlineQuery(query.id(), result)
                 .cacheTime(0)
                 .isPersonal(true)
-        logger.info("Inline query from ${query.from().id()}: $qtext")
+        logger.info("Inline query from ${query.from().id()}: $queryText")
         bot.execute(resp)
     }
 }
