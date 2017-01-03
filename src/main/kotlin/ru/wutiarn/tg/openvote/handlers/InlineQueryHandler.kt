@@ -34,8 +34,8 @@ open class InlineQueryHandler(val bot: TelegramBot,
                 .isPersonal(true)
 
         val pollRedis = redisTemplate.boundHashOps<String, String>("openvote_$pollId")
-        pollRedis.expire(10, TimeUnit.DAYS)
         pollRedis.put("topic", queryText)
+        pollRedis.expire(10, TimeUnit.DAYS)
 
         val pollVariants = redisTemplate.boundListOps("openvote_${pollId}_variants")
         pollVariants.rightPushAll(*variants)

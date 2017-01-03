@@ -50,6 +50,8 @@ open class CallbackQueryHandler(val bot: TelegramBot,
         val votes = redis.boundHashOps<String, String>("openvote_${id}_votes")
         val variants = redis.boundListOps("openvote_${id}_variants").let { it.range(0, it.size() - 1) }
 
+        votes.expire(10, TimeUnit.DAYS)
+
         if (selectedVariantIndex !in 0..variants.lastIndex) {
             bot.execute(answerCallbackQuery.text("Unsupported vote result"))
             return
@@ -59,7 +61,6 @@ open class CallbackQueryHandler(val bot: TelegramBot,
         bot.execute(answerCallbackQuery.text(EmojiParser.parseToUnicode("You $selectedVariant this.")))
 
         votes.put(userId.toString(), selectedVariantIndex.toString())
-        votes.expire(10, TimeUnit.DAYS)
 
         val voteValues = votes.values()
 
