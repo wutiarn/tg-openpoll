@@ -48,7 +48,7 @@ open class InlineQueryHandler(val bot: TelegramBot,
         pollVariants.rightPushAll(*variants)
         pollVariants.expire(10, TimeUnit.DAYS)
 
-        logger.info("Inline query from ${query.from().id()}: $queryText")
+        logger.info("Inline query from ${query.from().id()}, pollId PollID: $pollId: $queryText")
         bot.execute(resp)
     }
 }

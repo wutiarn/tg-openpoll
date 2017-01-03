@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 open class CallbackQueryHandler(val bot: TelegramBot,
                                 val redis: RedisTemplate<String, String>) {
 
-    val logger: Logger = LoggerFactory.getLogger(InlineQueryHandler::class.java)
+    val logger: Logger = LoggerFactory.getLogger(CallbackQueryHandler::class.java)
 
     fun handleInlineCallback(callback: CallbackQuery) {
         val userId = callback.from().id()
