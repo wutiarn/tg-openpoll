@@ -1,4 +1,4 @@
-package ru.wutiarn.tg.openvote.handlers
+package ru.wutiarn.tg.openpoll.handlers
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.CallbackQuery
@@ -11,7 +11,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
-import ru.wutiarn.tg.openvote.makeInlineKeyboard
+import ru.wutiarn.tg.openpoll.makeInlineKeyboard
 import java.util.concurrent.TimeUnit
 
 @Component
@@ -34,7 +34,7 @@ open class CallbackQueryHandler(val bot: TelegramBot,
         }
         val id = dataParts[1]
 
-        if (!redis.hasKey("openvote_$id")) {
+        if (!redis.hasKey("openpoll_$id")) {
             bot.execute(answerCallbackQuery.text("This vote is finished"))
             return
         }
@@ -46,9 +46,9 @@ open class CallbackQueryHandler(val bot: TelegramBot,
             return
         }
 
-        val poll = redis.boundHashOps<String, String>("openvote_$id")
-        val votes = redis.boundHashOps<String, String>("openvote_${id}_votes")
-        val variants = redis.boundListOps("openvote_${id}_variants").let { it.range(0, it.size() - 1) }
+        val poll = redis.boundHashOps<String, String>("openpoll_$id")
+        val votes = redis.boundHashOps<String, String>("openpoll_${id}_votes")
+        val variants = redis.boundListOps("openpoll_${id}_variants").let { it.range(0, it.size() - 1) }
 
         votes.expire(10, TimeUnit.DAYS)
 

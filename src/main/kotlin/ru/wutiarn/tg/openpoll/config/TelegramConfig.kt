@@ -1,4 +1,4 @@
-package ru.wutiarn.tg.openvote.config
+package ru.wutiarn.tg.openpoll.config
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.TelegramBotAdapter
@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration
 import java.util.concurrent.TimeUnit
 
 @Configuration
-open class TelegramConfig(@Value("\${openvote.token}") val telegramToken: String) {
+open class TelegramConfig(@Value("\${telegram.token}") val telegramToken: String) {
     @Bean
     open fun bot(): TelegramBot {
         val client = OkHttpClient().newBuilder().readTimeout(70, TimeUnit.SECONDS).build()

@@ -1,4 +1,4 @@
-package ru.wutiarn.tg.openvote.handlers
+package ru.wutiarn.tg.openpoll.handlers
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.InlineQuery
@@ -10,7 +10,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Component
-import ru.wutiarn.tg.openvote.makeInlineKeyboard
+import ru.wutiarn.tg.openpoll.makeInlineKeyboard
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -40,11 +40,11 @@ open class InlineQueryHandler(val bot: TelegramBot,
                 .cacheTime(0)
                 .isPersonal(true)
 
-        val pollRedis = redisTemplate.boundHashOps<String, String>("openvote_$pollId")
+        val pollRedis = redisTemplate.boundHashOps<String, String>("openpoll_$pollId")
         pollRedis.put("topic", queryText)
         pollRedis.expire(10, TimeUnit.DAYS)
 
-        val pollVariants = redisTemplate.boundListOps("openvote_${pollId}_variants")
+        val pollVariants = redisTemplate.boundListOps("openpoll_${pollId}_variants")
         pollVariants.rightPushAll(*variants)
         pollVariants.expire(10, TimeUnit.DAYS)
 

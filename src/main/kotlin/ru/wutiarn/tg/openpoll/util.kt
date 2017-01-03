@@ -1,4 +1,4 @@
-package ru.wutiarn.tg.openvote
+package ru.wutiarn.tg.openpoll
 
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup

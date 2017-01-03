@@ -1,4 +1,4 @@
-package ru.wutiarn.tg.openvote.handlers
+package ru.wutiarn.tg.openpoll.handlers
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.InlineQuery

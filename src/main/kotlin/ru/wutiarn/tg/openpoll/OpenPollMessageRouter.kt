@@ -1,4 +1,4 @@
-package ru.wutiarn.tg.openvote
+package ru.wutiarn.tg.openpoll
 
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.UpdatesListener.CONFIRMED_UPDATES_ALL
@@ -7,18 +7,18 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
-import ru.wutiarn.tg.openvote.handlers.CallbackQueryHandler
-import ru.wutiarn.tg.openvote.handlers.InlineQueryHandler
-import ru.wutiarn.tg.openvote.handlers.PrivateMessageHandler
+import ru.wutiarn.tg.openpoll.handlers.CallbackQueryHandler
+import ru.wutiarn.tg.openpoll.handlers.InlineQueryHandler
+import ru.wutiarn.tg.openpoll.handlers.PrivateMessageHandler
 
 @Service
-open class OpenVoteMessageRouter(
+open class OpenPollMessageRouter(
         val bot: TelegramBot,
         val inlineQueryHandler: InlineQueryHandler,
         val privateMessageHandler: PrivateMessageHandler,
         val callbackQueryHandler: CallbackQueryHandler
 ) {
-    val logger: Logger = LoggerFactory.getLogger(OpenVoteMessageRouter::class.java)
+    val logger: Logger = LoggerFactory.getLogger(OpenPollMessageRouter::class.java)
 
     @Async
     open fun run() {
