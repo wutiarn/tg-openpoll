@@ -87,7 +87,7 @@ open class CallbackQueryHandler(val bot: TelegramBot,
                     val chat = chatResponse.chat()
                     val username = chat.username()
                     val selectedVariant = EmojiParser.parseToUnicode(variants[vote.value.toInt()])
-                    val userDisplayName = "${chat.firstName()} ${chat.lastName()}"
+                    val userDisplayName = "${chat.firstName() ?: "<id ${chat.id()}>"} ${chat.lastName() ?: ""}"
 
                     return@map when (username != null) {
                         true -> "$selectedVariant [$userDisplayName](https://telegram.me/$username)"
