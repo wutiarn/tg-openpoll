@@ -33,7 +33,7 @@ open class InlineQueryHandler(val bot: TelegramBot,
                 .parseMode(ParseMode.Markdown)
                 .disableWebPagePreview(true)
 
-        val result = InlineQueryResultArticle(pollId, "Start new vote", msg)
+        val result = InlineQueryResultArticle(pollId, "Start new poll", msg)
                 .description(queryText)
                 .replyMarkup(makeInlineKeyboard(pollId, variants))
         val resp = AnswerInlineQuery(query.id(), result)
