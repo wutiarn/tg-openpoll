@@ -46,7 +46,7 @@ open class CallbackQueryHandler(val bot: TelegramBot,
             return
         }
 
-        val poll = redis.boundHashOps<String, String>("openvote_${id}")
+        val poll = redis.boundHashOps<String, String>("openvote_$id")
         val votes = redis.boundHashOps<String, String>("openvote_${id}_votes")
         val variants = redis.boundListOps("openvote_${id}_variants").let { it.range(0, it.size() - 1) }
 
@@ -70,7 +70,7 @@ open class CallbackQueryHandler(val bot: TelegramBot,
                 .toTypedArray()
 
         bot.execute(EditMessageText(callback.inlineMessageId(),
-                "*${poll["topic"]}*\n\n${getResults(votes.entries(), variants)}")
+                "*${poll["topic"]}*\n${getResults(votes.entries(), variants)}")
                 .replyMarkup(makeInlineKeyboard(id, variantButtons))
                 .parseMode(ParseMode.Markdown)
                 .disableWebPagePreview(true)

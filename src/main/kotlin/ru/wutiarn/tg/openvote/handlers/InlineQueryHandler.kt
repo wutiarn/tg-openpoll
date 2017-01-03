@@ -3,6 +3,8 @@ package ru.wutiarn.tg.openvote.handlers
 import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.model.InlineQuery
 import com.pengrad.telegrambot.model.request.InlineQueryResultArticle
+import com.pengrad.telegrambot.model.request.InputTextMessageContent
+import com.pengrad.telegrambot.model.request.ParseMode
 import com.pengrad.telegrambot.request.AnswerInlineQuery
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -26,7 +28,12 @@ open class InlineQueryHandler(val bot: TelegramBot,
                 ":neutral_face:",
                 ":thumbsdown:"
         )
-        val result = InlineQueryResultArticle(pollId, "Start new vote", queryText)
+
+        val msg = InputTextMessageContent("*$queryText*")
+                .parseMode(ParseMode.Markdown)
+                .disableWebPagePreview(true)
+
+        val result = InlineQueryResultArticle(pollId, "Start new vote", msg)
                 .description(queryText)
                 .replyMarkup(makeInlineKeyboard(pollId, variants))
         val resp = AnswerInlineQuery(query.id(), result)
