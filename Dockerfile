@@ -10,4 +10,4 @@ RUN ./gradlew build
 
 RUN mv build/dist/tg-openpoll.jar .
 
-CMD java -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=1099 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -jar tg-openpoll.jar
+CMD java -jar tg-openpoll.jar
