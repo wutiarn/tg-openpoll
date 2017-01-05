@@ -1,13 +1,13 @@
-FROM java:8-jdk
+FROM openjdk:8-alpine
 
-RUN apt-get update
-RUN apt-get install libgs-dev zbar-tools -y
+RUN apk add --no-cache bash
 
 WORKDIR /code
 ADD . /code
 
-RUN ./gradlew build
-
-RUN mv build/dist/tg-openpoll.jar .
+RUN ./gradlew build &&\
+    rm -rf /root/.gradle &&\
+    mv build/dist/tg-openpoll.jar . &&\
+    rm -rf build/ .gradle/
 
 CMD java -jar tg-openpoll.jar
